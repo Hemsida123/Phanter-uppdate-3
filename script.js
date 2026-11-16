@@ -150,3 +150,67 @@
   controls.hidden = false;
   guide.classList.add('is-ready');
 })();
+
+
+/* ============================================================
+   Instagram – automatisk uppdatering
+   ------------------------------------------------------------
+   Rutnätet i HTML fungerar som det är. Fyller man i adressen
+   nedan hämtas i stället de senaste inläggen från Instagram vid
+   varje sidladdning, med samma utseende som resten av sajten.
+
+   Så får du adressen:
+     1. Skapa ett gratiskonto på behold.so
+     2. Anslut Instagram-kontot @phanterbygg_
+     3. Skapa ett flöde, ställ in 6 inlägg
+     4. Kopiera "JSON feed"-adressen och klistra in den här
+
+   Lyckas inte hämtningen ligger bilderna i HTML kvar. Sidan kan
+   alltså aldrig bli tom.
+   ============================================================ */
+var BEHOLD_FEED = '';
+
+(function () {
+  if (!BEHOLD_FEED) return;
+  var grid = document.querySelector('.insta-grid');
+  if (!grid) return;
+
+  function kort(p) {
+    var bild = p.sizes && p.sizes.medium ? p.sizes.medium.mediaUrl : p.mediaUrl;
+    var text = (p.caption || '').replace(/#\S+/g, '').replace(/\s+/g, ' ').trim();
+    if (text.length > 115) text = text.slice(0, 112).replace(/[\s,.;:–-]+$/, '') + '…';
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.href = p.permalink; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    var img = document.createElement('img');
+    img.src = bild; img.loading = 'lazy'; img.decoding = 'async';
+    img.width = 640; img.height = 640;
+    img.alt = text ? 'Instagraminlägg från PhanterBygg: ' + text.slice(0, 80) : 'Instagraminlägg från PhanterBygg';
+    a.appendChild(img);
+    if (p.mediaType === 'VIDEO') {
+      var v = document.createElement('span');
+      v.className = 'insta-tag'; v.textContent = 'Film';
+      a.appendChild(v);
+    }
+    if (text) {
+      var c = document.createElement('span');
+      c.className = 'insta-caption'; c.textContent = text;
+      a.appendChild(c);
+    }
+    li.appendChild(a);
+    return li;
+  }
+
+  fetch(BEHOLD_FEED, { cache: 'no-cache' })
+    .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+    .then(function (data) {
+      var poster = Array.isArray(data) ? data : (data.posts || []);
+      poster = poster.slice(0, 6);
+      if (!poster.length) return;
+      var ny = document.createDocumentFragment();
+      poster.forEach(function (p) { ny.appendChild(kort(p)); });
+      grid.innerHTML = '';
+      grid.appendChild(ny);
+    })
+    .catch(function () { /* behåll bilderna som redan ligger i HTML */ });
+})();
